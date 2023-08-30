@@ -1,0 +1,514 @@
+<!doctype html>
+<html>
+   <body>
+      <canvas width = "1000" height = "1000" id = "my_Canvas"></canvas>
+	  <!-- vertex shader -->
+		<script  id="vertex-shader-3d" type="x-shader/x-vertex">
+		attribute vec4 a_position;
+		attribute vec4 a_color;
+
+		uniform mat4 u_matrix;
+
+		varying vec4 v_color;
+
+		void main() {
+		  // Multiply the position by the matrix.
+		  gl_Position = u_matrix * a_position;
+
+		  // Pass the color to the fragment shader.
+		  v_color = a_color;
+		}
+		</script>
+		<script src="https://webglfundamentals.org/webgl/resources/webgl-utils.js"></script>
+		<script src="https://webglfundamentals.org/webgl/resources/m4.js"></script>
+		<script src="https://webglfundamentals.org/webgl/resources/primitives.js"></script>
+		<!-- fragment shader -->
+		<script  id="fragment-shader-3d" type="x-shader/x-fragment">
+		precision mediump float;
+
+		// Passed in from the vertex shader.
+		varying vec4 v_color;
+
+		uniform vec4 u_colorMult;
+
+		void main() {
+		   gl_FragColor = v_color * u_colorMult;
+		}
+		</script>
+	  <div id="overlay">
+		<div>Time: <span id="time"></span></div>
+		<div>x: <span id="x"></span></div>
+		<div>y: <span id="y"></span></div>
+		<div>z: <span id="z"></span></div>
+		<div>AngleX: <span id="angleX"></span></div>
+		<div>AngleY: <span id="angleY"></span></div>
+	  </div>
+	  <style>
+	   .container {
+		  position: relative;
+		}
+		#overlay {
+		  position: absolute;
+		  left: 10px;
+		  top: 10px;
+		  background-color: rgba(0, 0, 0, 0.7);
+		  color: white;
+		  font-family: monospace;
+		  padding: 1em;
+		}
+	  </style>
+
+      <script>
+		function main() {
+		  // Get A WebGL context
+		  /** @type {HTMLCanvasElement} */
+		   /*============= Creating a canvas ======================*/
+        var canvas = document.getElementById('my_Canvas');
+		canvas.width = document.body.clientWidth; //document.width is obsolete
+		canvas.height = document.body.clientHeight; //document.height is obsolete
+		canvasW = canvas.width;
+		canvasH = canvas.height;
+	
+         gl = canvas.getContext('webgl');
+		  if (!gl) {
+			return;
+		  }
+		  
+		  
+		  /*==========Console======================================*/
+		 
+		 // получаем ссылки на элементы DOM
+		var timeElement = document.querySelector("#time");
+		
+		var xElement = document.querySelector("#x");
+		var yElement = document.querySelector("#y");
+		var zElement = document.querySelector("#z");
+		
+		var anglexElement = document.querySelector("#angleX");
+		var angleyElement = document.querySelector("#angleY");
+
+		 
+		// создаём текстовые узлы, чтобы сэкономить немного браузерного времени
+		var timeNode = document.createTextNode("");
+		
+		var xNode = document.createTextNode("");
+		var yNode = document.createTextNode("");
+		var zNode = document.createTextNode("");
+		
+		
+		var anglexNode = document.createTextNode("");
+		var angleyNode = document.createTextNode("");
+		
+		// добавляем текстовые узлы в нужные места
+		timeElement.appendChild(timeNode);
+		
+		xElement.appendChild(xNode);
+		yElement.appendChild(yNode);
+		zElement.appendChild(zNode);
+		
+		anglexElement.appendChild(anglexNode);
+		angleyElement.appendChild(angleyNode);
+		
+		 /*================= Mouse events ======================*/
+		 
+		 
+		 
+		 var ctx = canvas.getContext("2d");
+
+		const CIRCLE_RAD = 3;
+
+		var dX = canvas.width/2;
+		var dY = canvas.height/2;
+
+		
+		canvas.onclick = function(){
+		  canvas.requestPointerLock();
+		}
+
+		document.addEventListener('pointerlockchange', lockStatusChange, false);
+
+		function lockStatusChange(){
+		  if(document.pointerLockElement === canvas){
+			document.addEventListener("mousemove", updateCirclePosition, false);
+		  }
+		  else{
+			document.removeEventListener("mousemove", updateCirclePosition, false);
+		  }
+		}
+		
+		function updateCirclePosition(e){
+		  dX += e.movementX;
+		  dY += e.movementX;
+		  
+		  if (dX > canvas.width) {
+			dX = 0;
+		  }
+		  else if (dX < 0) {
+			dX = canvas.width;
+		  }
+		  
+		  if (dY > canv.height) {
+			dY = 0;
+		  }  
+		  else if (dY < 0) {
+			dY = canv.height;
+		  }
+		  e.preventDefault();
+		  
+		 
+		}
+		
+		/* 
+		var mouseMove = function(e) {
+			dX = e.pageX, dY = e.pageY;
+            e.preventDefault();
+         };
+		canvas.addEventListener("mousemove", mouseMove, false);
+		*/
+		
+		/*=======================keys======================*/
+		 
+		window.addEventListener("keydown", onKeyDown, false);
+		window.addEventListener("keyup", onKeyUp, false);
+		
+		
+			var keyW = false;
+			var keyA = false;
+			var keyS = false;
+			var keyD = false;
+			
+			var keySPACE = false;
+			var keySHIFT = false;
+			var keyQ = false;
+			var keyE = false;
+			
+			var x = 0;
+			var y = 0;
+			var z = 100;
+
+		function onKeyDown(event) {
+		  var keyCode = event.keyCode;
+		  switch (keyCode) {
+			case 68: //d
+			  keyD = true;
+			  break;
+			case 83: //s
+			  keyS = true;
+			  break;
+			case 65: //a
+			  keyA = true;
+			  break;
+			case 87: //w
+			  keyW = true;
+			  break;
+			  
+			  
+			case 32: //SPACE
+			  keySPACE = true;
+			  break;
+			case 16: //SHIFT
+			  keySHIFT = true;
+			  break;
+			  
+			case 81: //Q
+			  keyQ = true;
+			  break;
+			case 69: //E
+			  keyE = true;
+			  break;
+		  }
+		}
+
+		function onKeyUp(event) {
+		  var keyCode = event.keyCode;
+
+		  switch (keyCode) {
+			case 68: //d
+			  keyD = false;
+			  break;
+			case 83: //s
+			  keyS = false;
+			  break;
+			case 65: //a
+			  keyA = false;
+			  break;
+			case 87: //w
+			  keyW = false;
+			  break;
+			  
+			  
+			case 32: //SPACE
+			  keySPACE = false;
+			  break;
+			case 16: //SHIFT
+			  keySHIFT = false;
+			  break;
+			
+			
+			case 81: //Q
+			  keyQ = false;
+			  break;
+			case 69: //E
+			  keyE = false;
+			  break;
+		  }
+		}
+
+		  // creates buffers with position, normal, texcoord, and vertex color
+		  // data for primitives by calling gl.createBuffer, gl.bindBuffer,
+		  // and gl.bufferData
+		  const sphereBufferInfo = primitives.createSphereWithVertexColorsBufferInfo(gl, 10, 12, 6);
+		  const cubeBufferInfo   = primitives.createCubeWithVertexColorsBufferInfo(gl, 20);
+		  const coneBufferInfo   = primitives.createTruncatedConeWithVertexColorsBufferInfo(gl, 10, 0, 20, 12, 1, true, false);
+
+		  // setup GLSL program
+		  var programInfo = webglUtils.createProgramInfo(gl, ["vertex-shader-3d", "fragment-shader-3d"]);
+		
+		let MatType = Float32Array;
+		
+		function subtractVectors(a, b, dst) {
+			dst = dst || new MatType(3);
+			dst[0] = a[0] - b[0];
+			dst[1] = a[1] - b[1];
+			dst[2] = a[2] - b[2];
+			return dst;
+		  }
+		  
+		function normalize(v, dst) {
+			dst = dst || new MatType(3);
+			var length = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+			// make sure we don't divide by 0.
+			if (length > 0.00001) {
+			  dst[0] = v[0] / length;
+			  dst[1] = v[1] / length;
+			  dst[2] = v[2] / length;
+			}
+			return dst;
+		  }
+		  
+		  function cross(a, b, dst) {
+			dst = dst || new MatType(3);
+			dst[0] = a[1] * b[2] - a[2] * b[1];
+			dst[1] = a[2] * b[0] - a[0] * b[2];
+			dst[2] = a[0] * b[1] - a[1] * b[0];
+			return dst;
+		  }
+		  
+		  function lookAt(cameraPosition, target, up, dst) {
+			dst = dst || new MatType(16);
+			var zAxis = normalize(
+				subtractVectors(cameraPosition, target));
+			var xAxis = normalize(cross(up, zAxis));
+			var yAxis = normalize(cross(zAxis, xAxis));
+
+			dst[ 0] = xAxis[0];
+			dst[ 1] = xAxis[1];
+			dst[ 2] = xAxis[2];
+			dst[ 3] = 0;
+			dst[ 4] = yAxis[0];
+			dst[ 5] = yAxis[1];
+			dst[ 6] = yAxis[2];
+			dst[ 7] = 0;
+			dst[ 8] = zAxis[0];
+			dst[ 9] = zAxis[1];
+			dst[10] = zAxis[2];
+			dst[11] = 0;
+			dst[12] = cameraPosition[0];
+			dst[13] = cameraPosition[1];
+			dst[14] = cameraPosition[2];
+			dst[15] = 1;
+
+			return dst;
+		  }
+		  
+		  
+		  function degToRad(d) {
+			return d * Math.PI / 180;
+		  }
+
+		  var cameraAngleRadians = degToRad(0);
+		  var fieldOfViewRadians = degToRad(60);
+		  var cameraHeight = 50;
+
+		  // Uniforms for each object.
+		  var sphereUniforms = {
+			u_colorMult: [0.5, 1, 0.5, 1],
+			u_matrix: m4.identity(),
+		  };
+		  var cubeUniforms = {
+			u_colorMult: [1, 0.5, 0.5, 1],
+			u_matrix: m4.identity(),
+		  };
+		  var coneUniforms = {
+			u_colorMult: [0.5, 0.5, 1, 1],
+			u_matrix: m4.identity(),
+		  };
+		  var sphereTranslation = [  0, 0, 0];
+		  var cubeTranslation   = [-40, 0, 0];
+		  var coneTranslation   = [ 40, 0, 0];
+
+		  var objectsToDraw = [
+			{
+			  programInfo: programInfo,
+			  bufferInfo: sphereBufferInfo,
+			  uniforms: sphereUniforms,
+			},
+			{
+			  programInfo: programInfo,
+			  bufferInfo: cubeBufferInfo,
+			  uniforms: cubeUniforms,
+			},
+			{
+			  programInfo: programInfo,
+			  bufferInfo: coneBufferInfo,
+			  uniforms: coneUniforms,
+			},
+		  ];
+
+		  function computeMatrix(viewProjectionMatrix, translation, xRotation, yRotation) {
+			var matrix = m4.translate(viewProjectionMatrix,
+				translation[0],
+				translation[1],
+				translation[2]);
+			matrix = m4.xRotate(matrix, xRotation);
+			return m4.yRotate(matrix, yRotation);
+		  }
+
+		 var AngleX = 0;
+		 var AngleY = 0;
+			  
+		  requestAnimationFrame(drawScene);
+
+		  // Draw the scene.
+		  function drawScene(time) {
+			time *= 0.0005;
+			
+			timeNode.nodeValue = time.toFixed(2);   // 2 десятичных знака
+			xNode.nodeValue = x;
+			yNode.nodeValue = y;
+			zNode.nodeValue = z;
+			
+			xt = canvas.width/2;
+			yt = canvas.height/2;
+			AngleX += (xt - dX) / 180;
+			//AngleY += (yt - dY) / 180;
+			
+			anglexNode.nodeValue = AngleX;
+			angleyNode.nodeValue = AngleY;
+			
+			dX = xt;
+			
+			  if (keyD == true) {
+				//x+=1
+				x+=Math.sin(AngleX + Math.PI/2)
+				z+=Math.cos(AngleX + Math.PI/2)
+			  }
+			  if (keyS == true) {
+				z+=Math.cos(AngleX)
+				x+=Math.sin(AngleX)
+			  }
+			  if (keyA == true) {
+				//x-=1
+				x+=Math.sin(AngleX - Math.PI/2)
+				z+=Math.cos(AngleX - Math.PI/2)
+			  }
+			  if (keyW == true) {
+				//z-=1
+				z-=Math.cos(AngleX)
+				x-=Math.sin(AngleX)
+				//x=-Math.sin(AngleX/180*
+			  }
+			  
+			  if (keySPACE == true) {
+				y+=1
+			  }
+			  if (keySHIFT == true) {
+				y-=1
+			  }
+			  
+			if (keyQ == true) {
+				AngleX +=0.01
+			  }
+			if (keyE == true) {
+				AngleX -=0.01
+			  }
+
+			webglUtils.resizeCanvasToDisplaySize(gl.canvas);
+
+			// Tell WebGL how to convert from clip space to pixels
+			gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+			gl.enable(gl.CULL_FACE);
+			gl.enable(gl.DEPTH_TEST);
+
+			// Clear the canvas AND the depth buffer.
+			gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+			// Compute the projection matrix
+			var aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+			var projectionMatrix =
+				m4.perspective(fieldOfViewRadians, aspect, 1, 2000);
+
+			// Compute the camera's matrix using look at.
+			var cameraPosition = [x, y, z];
+			var target = [x-(Math.sin(AngleX%360)), y, z-(Math.cos(AngleX%360))];
+			var up = [0, 1, 0];
+			var cameraMatrix = lookAt(cameraPosition, target, up);
+
+			// Make a view matrix from the camera matrix.
+			var viewMatrix = m4.inverse(cameraMatrix);
+
+			var viewProjectionMatrix = m4.multiply(projectionMatrix, viewMatrix);
+
+			var sphereXRotation =  time;
+			var sphereYRotation =  time;
+			var cubeXRotation   = -time;
+			var cubeYRotation   =  time;
+			var coneXRotation   =  time;
+			var coneYRotation   = -time;
+
+			// Compute the matrices for each object.
+			sphereUniforms.u_matrix = computeMatrix(
+				viewProjectionMatrix,
+				sphereTranslation,
+				0,
+				0);
+
+			cubeUniforms.u_matrix = computeMatrix(
+				viewProjectionMatrix,
+				cubeTranslation,
+				0,
+				0);
+
+			coneUniforms.u_matrix = computeMatrix(
+				viewProjectionMatrix,
+				coneTranslation,
+				0,
+				0);
+
+			// ------ Draw the objects --------
+
+			objectsToDraw.forEach(function(object) {
+			  var programInfo = object.programInfo;
+			  var bufferInfo = object.bufferInfo;
+
+			  gl.useProgram(programInfo.program);
+
+			  // Setup all the needed attributes.
+			  webglUtils.setBuffersAndAttributes(gl, programInfo, bufferInfo);
+
+			  // Set the uniforms.
+			  webglUtils.setUniforms(programInfo, object.uniforms);
+
+			  // Draw
+			  gl.drawArrays(gl.TRIANGLES, 0, bufferInfo.numElements);
+			});
+
+			requestAnimationFrame(drawScene);
+		  }
+		}
+
+		main();
+      </script>
+   </body>
+</html> 
